@@ -29,6 +29,7 @@ function App() {
   
   const [statistics, setStatistics] = useState(null);
   const [badResponses, setBadResponses] = useState([]);
+  const [aiStatus, setAiStatus] = useState(null);
 
   const handleConfigChange = (field, value) => {
     setCharacterConfig(prev => ({
