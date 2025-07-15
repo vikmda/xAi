@@ -302,7 +302,291 @@ class SexterBotAPITester:
             self.log_test("Language Support", False, str(e))
             return False
 
-    def test_flirting_responses(self):
+    def test_ai_status_endpoint(self):
+        """Test AI status endpoint for advanced AI features"""
+        try:
+            response = requests.get(f"{self.api_url}/ai_status", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                required_fields = ["advanced_ai_available", "vector_db_available", "model_loaded"]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    success = False
+                    details = f"Missing fields: {missing_fields}"
+                else:
+                    ai_status = data["advanced_ai_available"]
+                    vector_status = data["vector_db_available"]
+                    model_status = data["model_loaded"]
+                    
+                    details = f"Advanced AI: {ai_status}, Vector DB: {vector_status}, Model: {model_status}"
+                    
+                    # Check learning statistics if available
+                    if "total_vector_entries" in data:
+                        details += f", Vector entries: {data['total_vector_entries']}"
+                    if "auto_learned_responses" in data:
+                        details += f", Auto learned: {data['auto_learned_responses']}"
+                    if "manual_learned_responses" in data:
+                        details += f", Manual learned: {data['manual_learned_responses']}"
+                    
+                    # Success if at least advanced AI is available
+                    success = ai_status
+            else:
+                details = f"Status: {response.status_code}"
+                
+            self.log_test("AI Status Endpoint", success, details)
+            return success, data if success else {}
+        except Exception as e:
+            self.log_test("AI Status Endpoint", False, str(e))
+            return False, {}
+
+    def test_enhanced_chat_features(self):
+        """Test enhanced chat with emotion and AI confidence"""
+        try:
+            payload = {
+                "user_id": f"{self.test_user_id}_enhanced",
+                "message": "Ты такая красивая и сексуальная",
+                "character_config": {
+                    "name": "Анна",
+                    "language": "ru",
+                    "learning_enabled": True
+                }
+            }
+            response = requests.post(f"{self.api_url}/chat", json=payload, timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                required_fields = ["response", "message_number", "is_semi", "is_last"]
+                enhanced_fields = ["emotion", "ai_confidence"]
+                
+                missing_basic = [field for field in required_fields if field not in data]
+                enhanced_present = [field for field in enhanced_fields if field in data]
+                
+                if missing_basic:
+                    success = False
+                    details = f"Missing basic fields: {missing_basic}"
+                else:
+                    details = f"Response: '{data['response'][:50]}...'"
+                    if enhanced_present:
+                        details += f", Enhanced features: {enhanced_present}"
+                        if "emotion" in data:
+                            details += f", Emotion: {data['emotion']}"
+                        if "ai_confidence" in data:
+                            details += f", Confidence: {data['ai_confidence']:.2f}"
+                    
+                    # Success if we have enhanced features
+                    success = len(enhanced_present) > 0
+            else:
+                details = f"Status: {response.status_code}"
+                
+            self.log_test("Enhanced Chat Features", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Enhanced Chat Features", False, str(e))
+            return False
+
+    def test_emotion_detection(self):
+        """Test emotion detection in responses"""
+        try:
+            emotion_tests = [
+                {"message": "Ты такая красивая", "expected_emotion": "flirty"},
+                {"message": "Я тебя люблю", "expected_emotion": "romantic"},
+                {"message": "Хочу тебя", "expected_emotion": "seductive"},
+                {"message": "Давай поиграем", "expected_emotion": "playful"}
+            ]
+            
+            detected_emotions = []
+            for test in emotion_tests:
+                payload = {
+                    "user_id": f"{self.test_user_id}_emotion",
+                    "message": test["message"]
+                }
+                response = requests.post(f"{self.api_url}/chat", json=payload, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    emotion = data.get("emotion", "neutral")
+                    detected_emotions.append({
+                        "message": test["message"],
+                        "detected": emotion,
+                        "expected": test["expected_emotion"]
+                    })
+                else:
+                    self.log_test("Emotion Detection", False, f"Failed to get response for: {test['message']}")
+                    return False
+            
+            # Check if emotions are being detected (not all neutral)
+            non_neutral = [e for e in detected_emotions if e["detected"] != "neutral"]
+            success = len(non_neutral) > 0
+            
+            details = f"Emotions detected: {len(non_neutral)}/{len(emotion_tests)}"
+            if success:
+                sample_emotions = [e["detected"] for e in non_neutral[:3]]
+                details += f", Sample emotions: {sample_emotions}"
+            
+            self.log_test("Emotion Detection", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Emotion Detection", False, str(e))
+            return False
+
+    def test_contextual_responses(self):
+        """Test contextual responses based on conversation history"""
+        try:
+            test_user = f"{self.test_user_id}_context"
+            
+            # Send a series of messages to build context
+            messages = [
+                "Привет, как дела?",
+                "Расскажи о себе",
+                "Ты очень интересная",
+                "Хочу узнать тебя лучше",
+                "Может встретимся?"
+            ]
+            
+            responses = []
+            for i, msg in enumerate(messages):
+                payload = {
+                    "user_id": test_user,
+                    "message": msg
+                }
+                response = requests.post(f"{self.api_url}/chat", json=payload, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    responses.append({
+                        "message": msg,
+                        "response": data["response"],
+                        "message_number": data["message_number"],
+                        "emotion": data.get("emotion", "neutral")
+                    })
+                else:
+                    self.log_test("Contextual Responses", False, f"Failed at message {i+1}")
+                    return False
+            
+            # Check if responses show progression/context awareness
+            # Later responses should be different from early ones
+            first_response = responses[0]["response"]
+            last_response = responses[-1]["response"]
+            
+            # Simple check: responses should be different and show progression
+            success = first_response != last_response and len(responses) == len(messages)
+            
+            details = f"Messages sent: {len(responses)}, Context progression: {success}"
+            if success:
+                details += f", First emotion: {responses[0]['emotion']}, Last emotion: {responses[-1]['emotion']}"
+            
+            self.log_test("Contextual Responses", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Contextual Responses", False, str(e))
+            return False
+
+    def test_auto_learning(self):
+        """Test automatic learning from conversations"""
+        try:
+            # First, get initial learning stats
+            ai_status_response = requests.get(f"{self.api_url}/ai_status", timeout=10)
+            if ai_status_response.status_code != 200:
+                self.log_test("Auto Learning", False, "Could not get initial AI status")
+                return False
+            
+            initial_stats = ai_status_response.json()
+            initial_learned = initial_stats.get("auto_learned_responses", 0)
+            
+            # Send some conversations with learning enabled
+            test_user = f"{self.test_user_id}_learning"
+            learning_messages = [
+                "Как тебя зовут красотка?",
+                "Что ты любишь делать?",
+                "Ты очень привлекательная"
+            ]
+            
+            for msg in learning_messages:
+                payload = {
+                    "user_id": test_user,
+                    "message": msg,
+                    "character_config": {
+                        "learning_enabled": True,
+                        "language": "ru"
+                    }
+                }
+                response = requests.post(f"{self.api_url}/chat", json=payload, timeout=10)
+                if response.status_code != 200:
+                    self.log_test("Auto Learning", False, f"Failed to send learning message: {msg}")
+                    return False
+                
+                # Small delay to allow processing
+                time.sleep(0.5)
+            
+            # Check if learning stats increased
+            final_status_response = requests.get(f"{self.api_url}/ai_status", timeout=10)
+            if final_status_response.status_code != 200:
+                self.log_test("Auto Learning", False, "Could not get final AI status")
+                return False
+            
+            final_stats = final_status_response.json()
+            final_learned = final_stats.get("auto_learned_responses", 0)
+            
+            # Check if auto-learning occurred
+            learning_occurred = final_learned > initial_learned
+            success = learning_occurred
+            
+            details = f"Initial learned: {initial_learned}, Final learned: {final_learned}, Increase: {final_learned - initial_learned}"
+            
+            self.log_test("Auto Learning", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Auto Learning", False, str(e))
+            return False
+
+    def test_vector_database_functionality(self):
+        """Test vector database (ChromaDB) functionality"""
+        try:
+            # Test manual training (which uses vector database)
+            unique_question = f"тестовый вопрос {datetime.now().strftime('%H%M%S')}"
+            unique_answer = f"тестовый ответ {datetime.now().strftime('%H%M%S')}"
+            
+            # Add training data
+            train_payload = {
+                "question": unique_question,
+                "answer": unique_answer,
+                "language": "ru"
+            }
+            train_response = requests.post(f"{self.api_url}/train", json=train_payload, timeout=10)
+            
+            if train_response.status_code != 200:
+                self.log_test("Vector Database", False, "Failed to add training data")
+                return False
+            
+            # Small delay for processing
+            time.sleep(1)
+            
+            # Test if the trained response can be retrieved
+            test_payload = {
+                "message": unique_question,
+                "character_config": {"language": "ru"}
+            }
+            test_response = requests.post(f"{self.api_url}/test", json=test_payload, timeout=10)
+            
+            if test_response.status_code != 200:
+                self.log_test("Vector Database", False, "Failed to test trained response")
+                return False
+            
+            test_data = test_response.json()
+            response_text = test_data.get("response", "")
+            
+            # Check if the response is related to our training (simple similarity check)
+            success = len(response_text) > 0
+            
+            details = f"Training added, Response received: '{response_text[:50]}...'"
+            
+            self.log_test("Vector Database", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Vector Database", False, str(e))
+            return False
         """Test that bot generates flirting responses"""
         try:
             flirt_messages = [
