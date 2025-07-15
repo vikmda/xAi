@@ -65,6 +65,15 @@ function App() {
     }
   };
 
+  const loadAiStatus = async () => {
+    try {
+      const response = await axios.get(`${API}/ai_status`);
+      setAiStatus(response.data);
+    } catch (error) {
+      console.error("Error loading AI status:", error);
+    }
+  };
+
   const loadStatistics = async () => {
     try {
       const response = await axios.get(`${API}/statistics`);
