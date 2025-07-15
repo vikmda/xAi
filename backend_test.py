@@ -204,7 +204,7 @@ class SexterBotAPITester:
             return False
 
     def test_statistics_endpoint(self):
-        """Test statistics endpoint"""
+        """Test enhanced statistics endpoint with AI features"""
         try:
             response = requests.get(f"{self.api_url}/statistics", timeout=10)
             success = response.status_code == 200
@@ -213,18 +213,40 @@ class SexterBotAPITester:
                 data = response.json()
                 required_fields = ["total_conversations", "total_users", "top_questions"]
                 missing_fields = [field for field in required_fields if field not in data]
+                
+                # Check for enhanced AI features
+                ai_features = ["emotion_distribution", "ai_confidence", "learning_stats"]
+                ai_features_present = [field for field in ai_features if field in data]
+                
                 if missing_fields:
                     success = False
-                    details = f"Missing fields: {missing_fields}"
+                    details = f"Missing basic fields: {missing_fields}"
                 else:
                     details = f"Conversations: {data['total_conversations']}, Users: {data['total_users']}"
+                    if ai_features_present:
+                        details += f", AI features: {ai_features_present}"
+                        
+                        # Check emotion distribution
+                        if "emotion_distribution" in data and data["emotion_distribution"]:
+                            emotions = [item["_id"] for item in data["emotion_distribution"]]
+                            details += f", Emotions detected: {emotions}"
+                        
+                        # Check AI confidence
+                        if "ai_confidence" in data and data["ai_confidence"]:
+                            avg_conf = data["ai_confidence"].get("avg_confidence", 0)
+                            details += f", Avg AI confidence: {avg_conf:.2f}"
+                        
+                        # Check learning stats
+                        if "learning_stats" in data and data["learning_stats"]:
+                            vector_entries = data["learning_stats"].get("total_vector_entries", 0)
+                            details += f", Vector entries: {vector_entries}"
             else:
                 details = f"Status: {response.status_code}"
                 
-            self.log_test("Statistics Endpoint", success, details)
+            self.log_test("Enhanced Statistics Endpoint", success, details)
             return success
         except Exception as e:
-            self.log_test("Statistics Endpoint", False, str(e))
+            self.log_test("Enhanced Statistics Endpoint", False, str(e))
             return False
 
     def test_bad_responses_endpoint(self):
