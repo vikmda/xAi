@@ -587,6 +587,46 @@ class SexterBotAPITester:
         except Exception as e:
             self.log_test("Vector Database", False, str(e))
             return False
+
+    def test_flirting_responses(self):
+        """Test that bot generates flirting responses"""
+        try:
+            flirt_messages = [
+                "Ты красивая",
+                "Хочу тебя",
+                "Ты сексуальная",
+                "Как дела, красотка?"
+            ]
+            
+            flirt_responses = []
+            for msg in flirt_messages:
+                payload = {
+                    "user_id": f"{self.test_user_id}_flirt",
+                    "message": msg
+                }
+                response = requests.post(f"{self.api_url}/chat", json=payload, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    flirt_responses.append(data["response"])
+                else:
+                    self.log_test("Flirting Responses", False, f"Failed to get response for: {msg}")
+                    return False
+            
+            # Check if responses seem flirtatious (basic check)
+            flirt_keywords = ["красив", "интересн", "особенн", "нравится", "жарко", "близост", "объятия"]
+            flirty_count = sum(1 for response in flirt_responses 
+                             if any(keyword in response.lower() for keyword in flirt_keywords))
+            
+            success = flirty_count > 0
+            details = f"Flirty responses: {flirty_count}/{len(flirt_responses)}"
+            if success:
+                details += f", Sample: '{flirt_responses[0][:50]}...'"
+            
+            self.log_test("Flirting Responses", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Flirting Responses", False, str(e))
+            return False
         """Test that bot generates flirting responses"""
         try:
             flirt_messages = [
