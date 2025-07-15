@@ -262,20 +262,96 @@ function App() {
     <div className="tab-content">
       <h2>Дополнительные настройки</h2>
       
+      <div className="ai-status-section">
+        <h3>Статус AI системы</h3>
+        <button onClick={loadAiStatus}>Проверить статус AI</button>
+        
+        {aiStatus && (
+          <div className="ai-status-display">
+            <div className={`status-item ${aiStatus.advanced_ai_available ? 'active' : 'inactive'}`}>
+              <span>🤖 Продвинутая AI: {aiStatus.advanced_ai_available ? 'Активна' : 'Неактивна'}</span>
+            </div>
+            <div className={`status-item ${aiStatus.vector_db_available ? 'active' : 'inactive'}`}>
+              <span>🗄️ Векторная БД: {aiStatus.vector_db_available ? 'Подключена' : 'Отключена'}</span>
+            </div>
+            <div className={`status-item ${aiStatus.model_loaded ? 'active' : 'inactive'}`}>
+              <span>📚 Модель: {aiStatus.model_loaded ? 'Загружена' : 'Не загружена'}</span>
+            </div>
+            
+            {aiStatus.total_vector_entries && (
+              <div className="learning-stats">
+                <h4>Статистика обучения:</h4>
+                <p>Всего векторных записей: {aiStatus.total_vector_entries}</p>
+                <p>Автообучение: {aiStatus.auto_learned_responses || 0}</p>
+                <p>Ручное обучение: {aiStatus.manual_learned_responses || 0}</p>
+                <p>Общее обучение: {aiStatus.total_learned || 0}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
       <div className="stats-section">
         <h3>Статистика</h3>
         <button onClick={loadStatistics}>Загрузить статистику</button>
         
         {statistics && (
           <div className="stats-display">
-            <p>Всего разговоров: {statistics.total_conversations}</p>
-            <p>Всего пользователей: {statistics.total_users}</p>
-            <h4>Топ вопросов:</h4>
-            <ul>
-              {statistics.top_questions.map((item, index) => (
-                <li key={index}>{item._id}: {item.count} раз</li>
-              ))}
-            </ul>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <h4>Общее</h4>
+                <p>Разговоров: {statistics.total_conversations}</p>
+                <p>Пользователей: {statistics.total_users}</p>
+              </div>
+              
+              {statistics.ai_confidence && (
+                <div className="stat-card">
+                  <h4>AI Уверенность</h4>
+                  <p>Средняя: {(statistics.ai_confidence.avg_confidence * 100).toFixed(1)}%</p>
+                  <p>Высокая: {statistics.ai_confidence.high_confidence}</p>
+                </div>
+              )}
+              
+              {statistics.learning_stats && (
+                <div className="stat-card">
+                  <h4>Обучение</h4>
+                  <p>Векторных записей: {statistics.learning_stats.total_vector_entries}</p>
+                  <p>Выучено: {statistics.learning_stats.total_learned}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="charts-section">
+              <h4>Топ вопросов:</h4>
+              <div className="questions-list">
+                {statistics.top_questions.map((item, index) => (
+                  <div key={index} className="question-item">
+                    <span className="question-text">{item._id}</span>
+                    <span className="question-count">{item.count}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {statistics.emotion_distribution && (
+                <div className="emotions-section">
+                  <h4>Распределение эмоций:</h4>
+                  <div className="emotions-list">
+                    {statistics.emotion_distribution.map((emotion, index) => (
+                      <div key={index} className="emotion-item">
+                        <span className="emotion-name">{emotion._id}</span>
+                        <span className="emotion-count">{emotion.count}</span>
+                        <div className="emotion-bar">
+                          <div 
+                            className="emotion-fill" 
+                            style={{width: `${(emotion.count / statistics.total_conversations) * 100}%`}}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -296,6 +372,7 @@ function App() {
       
       <div className="reset-section">
         <h3>Сброс базы данных</h3>
+        <p className="warning-text">⚠️ Это удалит все разговоры, обучение и векторную базу данных</p>
         <button className="danger-btn" onClick={resetDatabase}>
           Сбросить БД
         </button>
