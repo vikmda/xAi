@@ -218,6 +218,9 @@ function App() {
         {testResponse && (
           <div className="test-response">
             <p><strong>Ответ:</strong> {testResponse}</p>
+            {statistics && statistics.ai_confidence && (
+              <p><strong>Эмоция:</strong> {statistics.emotion || "neutral"}</p>
+            )}
             <div className="rating">
               <label>Оценка:</label>
               {[1, 2, 3, 4, 5].map(num => (
