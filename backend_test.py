@@ -34,7 +34,7 @@ class SexterBotAPITester:
     def test_api_root(self):
         """Test basic API connectivity"""
         try:
-            response = requests.get(f"{self.api_url}/", timeout=10)
+            response = requests.get(f"{self.api_url}/", timeout=self.timeout)
             success = response.status_code == 200
             details = f"Status: {response.status_code}"
             if success:
