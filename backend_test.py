@@ -646,6 +646,18 @@ class SexterBotAPITester:
         self.test_statistics_endpoint()
         self.test_bad_responses_endpoint()
         
+        # Advanced AI tests
+        ai_available, ai_status = self.test_ai_status_endpoint()
+        if ai_available:
+            print("🤖 Advanced AI detected, running enhanced tests...")
+            self.test_enhanced_chat_features()
+            self.test_emotion_detection()
+            self.test_contextual_responses()
+            self.test_auto_learning()
+            self.test_vector_database_functionality()
+        else:
+            print("⚠️  Advanced AI not available, skipping enhanced tests")
+        
         # Sexter-specific tests
         self.test_language_support()
         self.test_flirting_responses()
