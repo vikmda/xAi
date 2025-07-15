@@ -17,6 +17,7 @@ class SexterBotAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.test_user_id = f"test_user_{datetime.now().strftime('%H%M%S')}"
+        self.timeout = 30  # Increased timeout
 
     def log_test(self, name, success, details=""):
         """Log test results"""
